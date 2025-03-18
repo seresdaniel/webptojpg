@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <title>WebP to JPG Konverter</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      /* A top padding biztosítja, hogy a fix gomb ne takarja el a tartalmat */
+      padding: 70px 50px 50px;
+    }
+    #drop-area {
+      width: 300px;
+      height: 200px;
+      border: 2px dashed #ccc;
+      border-radius: 10px;
+      margin: 20px auto;
+      line-height: 200px;
+      color: #ccc;
+      transition: border-color 0.3s, color 0.3s;
+    }
+    #drop-area.hover {
+      border-color: #333;
+      color: #333;
+    }
+    #result {
+      margin-top: 20px;
+    }
+    /* Reset gomb fix a lap tetejére */
+    #reset-btn {
+      position: fixed;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body>
+  <button id="reset-btn">Reset</button>
+  <h1>WebP to JPG Konverter</h1>
+  <div id="drop-area">Húzd ide a WebP fájlokat</div>
+  <div id="result"></div>
+
+  <script>
+    const dropArea = document.getElementById('drop-area');
+    const resultDiv = document.getElementById('result');
+    const resetBtn = document.getElementById('reset-btn');
+
+    // Alapértelmezett drag & drop viselkedés letiltása
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }, false);
+    });
+
+    // Vizuális jelzés a fájlok áthúzásakor
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropArea.addEventListener(eventName, () => {
+        dropArea.classList.add('hover');
+      }, false);
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropArea.addEventListener(eventName, () => {
+        dropArea.classList.remove('hover');
+      }, false);
+    });
+
+    // Több fájl kezelése
+    dropArea.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
+          if (file.type !== 'image/webp') {
+            alert('Kérlek, csak WebP fájlt tölts fel: ' + file.name);
+            continue;
+          }
+          convertWebPToJPG(file);
+        }
+      }
+    });
+
+    // Konvertálás: betöltjük a WebP képet, majd canvas segítségével JPG formátumba alakítjuk
+    function convertWebPToJPG(file) {
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+          // Konvertálás JPG formátumba (92% minőség)
+          const jpgDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+          displayResult(jpgDataUrl, file.name);
+        }
+        img.src = event.target.result;
+      }
+      reader.readAsDataURL(file);
+    }
+
+    // Eredmény megjelenítése: képek megjelenítése és automatikus letöltés
+    function displayResult(dataUrl, originalName) {
+      // Fájlnév módosítása: .webp -> .jpg
+      let newName = originalName.replace(/\.webp$/i, '.jpg');
+
+      // Kép megjelenítése a felületen
+      const container = document.createElement('div');
+      container.style.marginBottom = '20px';
+      const imgElement = document.createElement('img');
+      imgElement.src = dataUrl;
+      imgElement.style.maxWidth = '100%';
+      container.appendChild(imgElement);
+      resultDiv.appendChild(container);
+
+      // Automatikus letöltés: ideiglenes <a> elem létrehozása, majd programozott kattintás
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = newName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Reset gomb funkciója: eltünteti a megjelenített képeket
+    resetBtn.addEventListener('click', () => {
+      resultDiv.innerHTML = '';
+    });
+  </script>
+</body>
+</html>
