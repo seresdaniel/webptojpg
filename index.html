@@ -7,8 +7,7 @@
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      /* A top padding biztosítja, hogy a fix gomb ne takarja el a tartalmat */
-      padding: 70px 50px 50px;
+      padding: 90px 50px 50px; /* Extra top padding, hogy a fix elemek ne fedjék egymást */
     }
     #drop-area {
       width: 300px;
@@ -27,7 +26,7 @@
     #result {
       margin-top: 20px;
     }
-    /* Reset gomb fix a lap tetejére */
+    /* Reset gomb fixen a lap tetejére */
     #reset-btn {
       position: fixed;
       top: 10px;
@@ -36,12 +35,27 @@
       padding: 10px 20px;
       font-size: 16px;
       cursor: pointer;
-      z-index: 1000;
+      z-index: 1001;
+    }
+    /* Notification stílus, a reset gomb alatt */
+    #notification {
+      position: fixed;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #f8d7da;
+      color: #721c24;
+      padding: 10px 20px;
+      border: 1px solid #f5c6cb;
+      border-radius: 5px;
+      display: none;
+      z-index: 1001;
     }
   </style>
 </head>
 <body>
   <button id="reset-btn">Reset</button>
+  <div id="notification"></div>
   <h1>WebP to JPG Konverter</h1>
   <div id="drop-area">Húzd ide a WebP fájlokat</div>
   <div id="result"></div>
@@ -50,6 +64,7 @@
     const dropArea = document.getElementById('drop-area');
     const resultDiv = document.getElementById('result');
     const resetBtn = document.getElementById('reset-btn');
+    const notificationDiv = document.getElementById('notification');
 
     // Alapértelmezett drag & drop viselkedés letiltása
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -78,7 +93,7 @@
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
           if (file.type !== 'image/webp') {
-            alert('Kérlek, csak WebP fájlt tölts fel: ' + file.name);
+            displayNotification('Kérlek, csak WebP fájlt tölts fel: ' + file.name);
             continue;
           }
           convertWebPToJPG(file);
@@ -127,6 +142,15 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    }
+
+    // Notification megjelenítése: kiírja az üzenetet a tetején, majd 3 másodperc múlva eltűnik
+    function displayNotification(message) {
+      notificationDiv.textContent = message;
+      notificationDiv.style.display = 'block';
+      setTimeout(() => {
+        notificationDiv.style.display = 'none';
+      }, 3000);
     }
 
     // Reset gomb funkciója: eltünteti a megjelenített képeket
