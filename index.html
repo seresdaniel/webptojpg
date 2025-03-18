@@ -4,24 +4,30 @@
   <meta charset="UTF-8">
   <title>WebP to JPG Konverter</title>
   <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      padding: 90px 50px 50px; /* Extra top padding, hogy a fix elemek ne fedjék egymást */
+      padding: 90px 50px 50px; /* extra top padding, hogy a fix elemek ne fedjék egymást */
     }
+    /* Drag & Drop felület: 80% szélesség és 60% magasság */
     #drop-area {
-      width: 300px;
-      height: 200px;
+      width: 80%;
+      height: 60%;
       border: 2px dashed #ccc;
       border-radius: 10px;
       margin: 20px auto;
-      line-height: 200px;
-      color: #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       transition: border-color 0.3s, color 0.3s;
     }
     #drop-area.hover {
       border-color: #333;
-      color: #333;
     }
     #result {
       margin-top: 20px;
@@ -57,7 +63,9 @@
   <button id="reset-btn">Reset</button>
   <div id="notification"></div>
   <h1>WebP to JPG Konverter</h1>
-  <div id="drop-area">Húzd ide a WebP fájlokat</div>
+  <div id="drop-area">
+    <h2>Húzd ide a WebP fájlokat</h2>
+  </div>
   <div id="result"></div>
 
   <script>
@@ -66,7 +74,7 @@
     const resetBtn = document.getElementById('reset-btn');
     const notificationDiv = document.getElementById('notification');
 
-    // Alapértelmezett drag & drop viselkedés letiltása
+    // Alapértelmezett drag & drop események letiltása
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
       dropArea.addEventListener(eventName, (e) => {
         e.preventDefault();
@@ -101,7 +109,7 @@
       }
     });
 
-    // Konvertálás: betöltjük a WebP képet, majd canvas segítségével JPG formátumba alakítjuk
+    // Konvertálás: WebP kép betöltése, majd canvas segítségével JPG formátumba alakítása
     function convertWebPToJPG(file) {
       const reader = new FileReader();
       reader.onload = function(event) {
@@ -135,7 +143,7 @@
       container.appendChild(imgElement);
       resultDiv.appendChild(container);
 
-      // Automatikus letöltés: ideiglenes <a> elem létrehozása, majd programozott kattintás
+      // Automatikus letöltés: ideiglenes <a> elem létrehozása, kattintás, majd eltávolítás
       const link = document.createElement('a');
       link.href = dataUrl;
       link.download = newName;
@@ -144,7 +152,7 @@
       document.body.removeChild(link);
     }
 
-    // Notification megjelenítése: kiírja az üzenetet a tetején, majd 3 másodperc múlva eltűnik
+    // Értesítés megjelenítése: kiírja az üzenetet a tetején, majd 3 másodperc múlva eltűnik
     function displayNotification(message) {
       notificationDiv.textContent = message;
       notificationDiv.style.display = 'block';
@@ -153,7 +161,7 @@
       }, 3000);
     }
 
-    // Reset gomb funkciója: eltünteti a megjelenített képeket
+    // Reset gomb: eltünteti a megjelenített képeket
     resetBtn.addEventListener('click', () => {
       resultDiv.innerHTML = '';
     });
