@@ -98,10 +98,12 @@
     dropArea.addEventListener('drop', e => {
       const files = e.dataTransfer.files;
       Array.from(files).forEach(file => {
-        if (file.type !== 'image/webp') {
-          displayNotification('Please upload only WebP files: ' + file.name);
-        } else {
+        if (file.type === 'image/webp') {
           convertWebPToJPG(file);
+        } else if (file.type === 'image/png') {
+          downloadFile(file);
+        } else {
+          displayNotification('Please upload only WebP or PNG files: ' + file.name);
         }
       });
     });
@@ -114,10 +116,14 @@
         const item = items[i];
         if (item.kind === 'file') {
           const file = item.getAsFile();
-          if (file && file.type === 'image/webp') {
-            convertWebPToJPG(file);
-          } else if (file) {
-            displayNotification('Please paste only WebP files: ' + file.name);
+          if (file) {
+            if (file.type === 'image/webp') {
+              convertWebPToJPG(file);
+            } else if (file.type === 'image/png') {
+              downloadFile(file);
+            } else {
+              displayNotification('Please paste only WebP or PNG files: ' + file.name);
+            }
           }
         }
       }
@@ -141,6 +147,18 @@
         img.src = event.target.result;
       };
       reader.readAsDataURL(file);
+    }
+
+    // Download PNG (or any) file directly
+    function downloadFile(file) {
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     }
 
     // Show result image and trigger download
