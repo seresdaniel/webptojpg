@@ -84,20 +84,15 @@
 
     // Highlight on drag
     ['dragenter', 'dragover'].forEach(eventName => {
-      dropArea.addEventListener(eventName, () => {
-        dropArea.classList.add('hover');
-      }, false);
+      dropArea.addEventListener(eventName, () => dropArea.classList.add('hover'), false);
     });
     ['dragleave', 'drop'].forEach(eventName => {
-      dropArea.addEventListener(eventName, () => {
-        dropArea.classList.remove('hover');
-      }, false);
+      dropArea.addEventListener(eventName, () => dropArea.classList.remove('hover'), false);
     });
 
     // Handle dropped files
     dropArea.addEventListener('drop', e => {
-      const files = e.dataTransfer.files;
-      Array.from(files).forEach(file => {
+      Array.from(e.dataTransfer.files).forEach(file => {
         if (file.type === 'image/webp') {
           convertWebPToJPG(file);
         } else if (file.type === 'image/png') {
@@ -108,75 +103,65 @@
       });
     });
 
-    // Handle clipboard paste (files, PNG, WebP, or WebP URL)
-    window.addEventListener('paste', async e => {
+    // Handle clipboard paste (WebP/PNG files or WebP URL)
+    window.addEventListener('paste', e => {
       if (!e.clipboardData) return;
       let handled = false;
-      const items = e.clipboardData.items;
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
+      // Files
+      Array.from(e.clipboardData.items).forEach(item => {
         if (item.kind === 'file') {
           const file = item.getAsFile();
           if (file) {
-            if (file.type === 'image/webp') {
-              convertWebPToJPG(file);
-            } else if (file.type === 'image/png') {
-              downloadFile(file);
-            } else {
-              displayNotification('Please paste only WebP or PNG files: ' + file.name);
-            }
+            if (file.type === 'image/webp') convertWebPToJPG(file);
+            else if (file.type === 'image/png') downloadFile(file);
+            else displayNotification('Please paste only WebP or PNG files: ' + file.name);
             handled = true;
           }
         }
-      }
-      if (!handled) {
-        const text = e.clipboardData.getData('text').trim();
-        // If it's a WebP URL, fetch and convert
-        if (/^https?:\/\/.*\.webp(\?.*)?$/i.test(text)) {
-          fetchAndConvert(text);
-          handled = true;
-        }
+      });
+      if (handled) return;
+      // Text (URL)
+      const text = e.clipboardData.getData('text').trim();
+      if (/^https?:\/\/.*\.webp(\?.*)?$/i.test(text)) {
+        convertWebPUrl(text);
       }
     });
 
-    // Fetch a WebP URL and convert
-    function fetchAndConvert(url) {
-      fetch(url)
-        .then(res => {
-          if (!res.ok) throw new Error('Network response was not OK');
-          return res.blob();
-        })
-        .then(blob => {
-          const fileName = url.split('/').pop().split('?')[0] || 'download.webp';
-          const file = new File([blob], fileName, { type: blob.type || 'image/webp' });
-          convertWebPToJPG(file);
-        })
-        .catch(err => {
-          displayNotification('Failed to fetch WebP URL: ' + err.message);
-        });
+    // Convert WebP URL via Image + Canvas (handles CORS with crossOrigin)
+    function convertWebPUrl(url) {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        canvas.getContext('2d').drawImage(img, 0, 0);
+        const jpgDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        displayResult(jpgDataUrl, url.split('/').pop().split('?')[0] || 'image.webp');
+      };
+      img.onerror = () => displayNotification('Failed to load WebP URL: ' + url);
+      img.src = url;
     }
 
-    // Convert WebP to JPG via Canvas
+    // Convert WebP file to JPG via Canvas
     function convertWebPToJPG(file) {
       const reader = new FileReader();
-      reader.onload = function(event) {
+      reader.onload = e => {
         const img = new Image();
-        img.onload = function() {
+        img.onload = () => {
           const canvas = document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0);
-          // Export as JPEG (92% quality)
+          canvas.getContext('2d').drawImage(img, 0, 0);
           const jpgDataUrl = canvas.toDataURL('image/jpeg', 0.92);
           displayResult(jpgDataUrl, file.name);
         };
-        img.src = event.target.result;
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     }
 
-    // Download PNG (or any) file directly
+    // Download PNG or any file directly
     function downloadFile(file) {
       const url = URL.createObjectURL(file);
       const link = document.createElement('a');
@@ -188,37 +173,33 @@
       URL.revokeObjectURL(url);
     }
 
-    // Show result image and trigger download
-    function displayResult(dataUrl, originalName) {
-      const newName = originalName.replace(/\.webp$/i, '.jpg');
+    // Display result and auto-download
+    function displayResult(dataUrl, name) {
+      const displayName = name.replace(/\.webp$/i, '.jpg');
       const container = document.createElement('div');
       container.style.marginBottom = '20px';
-      const imgElement = document.createElement('img');
-      imgElement.src = dataUrl;
-      imgElement.style.maxWidth = '100%';
-      container.appendChild(imgElement);
+      const imgEl = document.createElement('img');
+      imgEl.src = dataUrl;
+      imgEl.style.maxWidth = '100%';
+      container.appendChild(imgEl);
       resultDiv.appendChild(container);
-      const link = document.createElement('a');
-      link.href = dataUrl;
-      link.download = newName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = displayName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
     }
 
-    // Show notification for 3 seconds
-    function displayNotification(message) {
-      notificationDiv.textContent = message;
+    // Notify with message
+    function displayNotification(msg) {
+      notificationDiv.textContent = msg;
       notificationDiv.style.display = 'block';
-      setTimeout(() => {
-        notificationDiv.style.display = 'none';
-      }, 3000);
+      setTimeout(() => notificationDiv.style.display = 'none', 3000);
     }
 
-    // Reset button clears results
-    resetBtn.addEventListener('click', () => {
-      resultDiv.innerHTML = '';
-    });
+    // Reset clears results
+    resetBtn.addEventListener('click', () => resultDiv.innerHTML = '');
   </script>
 </body>
 </html>
