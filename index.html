@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>WebP to JPG Konverter</title>
+  <title>WebP to JPG Converter</title>
   <style>
     html, body {
       height: 100%;
@@ -12,9 +12,9 @@
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      padding: 90px 50px 50px; /* extra top padding, hogy a fix elemek ne fedjék egymást */
+      padding: 90px 50px 50px; /* extra top padding so fixed elements don’t overlap */
     }
-    /* Drag & Drop felület: 80% szélesség és 60% magasság */
+    /* Drag & Drop area: 80% width, 60% height */
     #drop-area {
       width: 80%;
       height: 60%;
@@ -32,7 +32,7 @@
     #result {
       margin-top: 20px;
     }
-    /* Reset gomb fixen a lap tetejére */
+    /* Reset button fixed at top */
     #reset-btn {
       position: fixed;
       top: 10px;
@@ -43,7 +43,7 @@
       cursor: pointer;
       z-index: 1001;
     }
-    /* Notification stílus, a reset gomb alatt */
+    /* Notification style, below the reset button */
     #notification {
       position: fixed;
       top: 50px;
@@ -62,9 +62,9 @@
 <body>
   <button id="reset-btn">Reset</button>
   <div id="notification"></div>
-  <h1>WebP to JPG Konverter</h1>
+  <h1>WebP to JPG Converter</h1>
   <div id="drop-area">
-    <h2>Húzd ide a WebP fájlokat</h2>
+    <h2>Drag &amp; drop WebP files here<br>or paste (Ctrl + V)</h2>
   </div>
   <div id="result"></div>
 
@@ -74,15 +74,15 @@
     const resetBtn = document.getElementById('reset-btn');
     const notificationDiv = document.getElementById('notification');
 
-    // Alapértelmezett drag & drop események letiltása
+    // Prevent default drag/drop behavior
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-      dropArea.addEventListener(eventName, (e) => {
+      dropArea.addEventListener(eventName, e => {
         e.preventDefault();
         e.stopPropagation();
       }, false);
     });
 
-    // Vizuális jelzés a fájlok áthúzásakor
+    // Highlight on drag
     ['dragenter', 'dragover'].forEach(eventName => {
       dropArea.addEventListener(eventName, () => {
         dropArea.classList.add('hover');
@@ -94,22 +94,36 @@
       }, false);
     });
 
-    // Több fájl kezelése
-    dropArea.addEventListener('drop', (e) => {
+    // Handle dropped files
+    dropArea.addEventListener('drop', e => {
       const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          if (file.type !== 'image/webp') {
-            displayNotification('Kérlek, csak WebP fájlt tölts fel: ' + file.name);
-            continue;
-          }
+      Array.from(files).forEach(file => {
+        if (file.type !== 'image/webp') {
+          displayNotification('Please upload only WebP files: ' + file.name);
+        } else {
           convertWebPToJPG(file);
+        }
+      });
+    });
+
+    // Handle clipboard paste
+    window.addEventListener('paste', e => {
+      if (!e.clipboardData) return;
+      const items = e.clipboardData.items;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file') {
+          const file = item.getAsFile();
+          if (file && file.type === 'image/webp') {
+            convertWebPToJPG(file);
+          } else if (file) {
+            displayNotification('Please paste only WebP files: ' + file.name);
+          }
         }
       }
     });
 
-    // Konvertálás: WebP kép betöltése, majd canvas segítségével JPG formátumba alakítása
+    // Convert WebP to JPG via Canvas
     function convertWebPToJPG(file) {
       const reader = new FileReader();
       reader.onload = function(event) {
@@ -120,21 +134,20 @@
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
-          // Konvertálás JPG formátumba (92% minőség)
+          // Export as JPEG (92% quality)
           const jpgDataUrl = canvas.toDataURL('image/jpeg', 0.92);
           displayResult(jpgDataUrl, file.name);
-        }
+        };
         img.src = event.target.result;
-      }
+      };
       reader.readAsDataURL(file);
     }
 
-    // Eredmény megjelenítése: képek megjelenítése és automatikus letöltés
+    // Show result image and trigger download
     function displayResult(dataUrl, originalName) {
-      // Fájlnév módosítása: .webp -> .jpg
-      let newName = originalName.replace(/\.webp$/i, '.jpg');
+      const newName = originalName.replace(/\.webp$/i, '.jpg');
 
-      // Kép megjelenítése a felületen
+      // Display on page
       const container = document.createElement('div');
       container.style.marginBottom = '20px';
       const imgElement = document.createElement('img');
@@ -143,7 +156,7 @@
       container.appendChild(imgElement);
       resultDiv.appendChild(container);
 
-      // Automatikus letöltés: ideiglenes <a> elem létrehozása, kattintás, majd eltávolítás
+      // Auto-download
       const link = document.createElement('a');
       link.href = dataUrl;
       link.download = newName;
@@ -152,7 +165,7 @@
       document.body.removeChild(link);
     }
 
-    // Értesítés megjelenítése: kiírja az üzenetet a tetején, majd 3 másodperc múlva eltűnik
+    // Show notification for 3 seconds
     function displayNotification(message) {
       notificationDiv.textContent = message;
       notificationDiv.style.display = 'block';
@@ -161,7 +174,7 @@
       }, 3000);
     }
 
-    // Reset gomb: eltünteti a megjelenített képeket
+    // Reset button clears results
     resetBtn.addEventListener('click', () => {
       resultDiv.innerHTML = '';
     });
