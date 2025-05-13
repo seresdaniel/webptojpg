@@ -64,7 +64,7 @@
   <div id="notification"></div>
   <h1>WebP to JPG Converter</h1>
   <div id="drop-area">
-    <h2>Drag &amp; drop WebP files here<br>or paste (Ctrl + V)</h2>
+    <h2>Drag &amp; drop WebP files here<br>or paste (Ctrl + V)<br>or paste a WebP URL</h2>
   </div>
   <div id="result"></div>
 
@@ -108,9 +108,10 @@
       });
     });
 
-    // Handle clipboard paste
-    window.addEventListener('paste', e => {
+    // Handle clipboard paste (files, PNG, WebP, or WebP URL)
+    window.addEventListener('paste', async e => {
       if (!e.clipboardData) return;
+      let handled = false;
       const items = e.clipboardData.items;
       for (let i = 0; i < items.length; i++) {
         const item = items[i];
@@ -124,10 +125,36 @@
             } else {
               displayNotification('Please paste only WebP or PNG files: ' + file.name);
             }
+            handled = true;
           }
         }
       }
+      if (!handled) {
+        const text = e.clipboardData.getData('text').trim();
+        // If it's a WebP URL, fetch and convert
+        if (/^https?:\/\/.*\.webp(\?.*)?$/i.test(text)) {
+          fetchAndConvert(text);
+          handled = true;
+        }
+      }
     });
+
+    // Fetch a WebP URL and convert
+    function fetchAndConvert(url) {
+      fetch(url)
+        .then(res => {
+          if (!res.ok) throw new Error('Network response was not OK');
+          return res.blob();
+        })
+        .then(blob => {
+          const fileName = url.split('/').pop().split('?')[0] || 'download.webp';
+          const file = new File([blob], fileName, { type: blob.type || 'image/webp' });
+          convertWebPToJPG(file);
+        })
+        .catch(err => {
+          displayNotification('Failed to fetch WebP URL: ' + err.message);
+        });
+    }
 
     // Convert WebP to JPG via Canvas
     function convertWebPToJPG(file) {
@@ -164,8 +191,6 @@
     // Show result image and trigger download
     function displayResult(dataUrl, originalName) {
       const newName = originalName.replace(/\.webp$/i, '.jpg');
-
-      // Display on page
       const container = document.createElement('div');
       container.style.marginBottom = '20px';
       const imgElement = document.createElement('img');
@@ -173,8 +198,6 @@
       imgElement.style.maxWidth = '100%';
       container.appendChild(imgElement);
       resultDiv.appendChild(container);
-
-      // Auto-download
       const link = document.createElement('a');
       link.href = dataUrl;
       link.download = newName;
